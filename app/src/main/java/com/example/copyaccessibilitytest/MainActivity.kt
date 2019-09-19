@@ -34,7 +34,9 @@ class MainActivity : AppCompatActivity() {
 
         commandTrigger.setOnClickListener{
             Timber.d("command trigger!")
-            BaseAccessibilityService.getInstance().performAction(null, "back")
+            BaseAccessibilityService.getInstance().performAction(
+                BaseAccessibilityService.getInstance().findViewByText("trigger", true)
+                , "click")
         }
     }
 }

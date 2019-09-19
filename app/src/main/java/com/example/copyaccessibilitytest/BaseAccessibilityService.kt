@@ -57,7 +57,7 @@ class BaseAccessibilityService : AccessibilityService() {
 
     fun performAction(node: AccessibilityNodeInfo?, actionText: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            with(actionText) {
+            with(actionText.toLowerCase()) {
                 when {
                     contains("back") -> {
                         Timber.d("back")
@@ -65,6 +65,9 @@ class BaseAccessibilityService : AccessibilityService() {
                     }
                     contains("home") -> {
                         performGlobalAction(GLOBAL_ACTION_BACK)
+                    }
+                    contains("click") -> {
+                        node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
                     }
 
                     else ->
