@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">AccessSample</string>
+    <string name="accessibility_service_label">AccessService</string>
+</resources>
