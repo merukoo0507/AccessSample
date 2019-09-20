@@ -8,6 +8,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import timber.log.Timber
 
 class BaseAccessibilityService : AccessibilityService() {
+    private var mNodeList: MutableList<AccessibilityNodeInfo> = mutableListOf()
 
     override fun onServiceConnected() {
         Timber.i("onServiceConnected")
@@ -15,25 +16,24 @@ class BaseAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {
         Timber.i("onInterrupt")
+        FloatView.getInstance().stopRecognition()
     }
 
     override fun onAccessibilityEvent(p0: AccessibilityEvent?) {
         Timber.i("onAccessibilityEvent: " + p0!!.eventType)
 
-        if (p0!!.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
-            Timber.d("TYPE_WINDOW_CONTENT_CHANGED")
-            val node: AccessibilityNodeInfo ?= if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                rootInActiveWindow
-            } else {
-                Timber.d("VERSION.SDK_INT < JELLY_BEAN")
-                return
-            }
+        if (p0!!.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+            || p0!!.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
 
-            if (node == null) {
-                Timber.d("rootNode == null")
-                return
+            Timber.i("onAccessibilityEvent: " + p0!!.eventType)
+
+            if (rootInActiveWindow != null
+                && rootInActiveWindow.childCount > 0) {
+                mNodeList = mutableListOf()
+                getChildNode(rootInActiveWindow)
+            } else {
+                Timber.d("rootInActiveWindow == null")
             }
-            getChildNode(node!!)
         }
 
     }
@@ -41,38 +41,51 @@ class BaseAccessibilityService : AccessibilityService() {
     fun getChildNode(node: AccessibilityNodeInfo) {
         for (i in 0 until node.childCount ) {
             var childNode = node.getChild(i)
-            if (childNode == null)  return
+            if (childNode == null)  continue
             if (childNode.text != null) {
+                mNodeList.add(childNode)
+
                 Timber.d("nodeText: " + childNode.text
                         + ", pkgName: " + childNode.packageName
-                        + ", isClickable: " + childNode.isCheckable)
+                        + ", isClickable: " + childNode.isCheckable
+                        + ", childCnt: " + childNode.childCount)
             }
             if (childNode.childCount != 0) {
-                Timber.d("childCnt: " + childNode.childCount)
                 getChildNode(childNode)
             }
         }
 
     }
 
-    fun performAction(node: AccessibilityNodeInfo?, actionText: String) {
+    fun performAction(text: String) {
+        var node = findViewByText(text.toLowerCase())
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            with(actionText.toLowerCase()) {
-                when {
-                    contains("back") -> {
-                        Timber.d("back")
-                        performGlobalAction(GLOBAL_ACTION_BACK)
+            if(node != null) {
+                with(text.toLowerCase()) {
+                    when {
+                        contains("click") -> {
+                            Timber.d("click")
+                            node!!.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                        }
+                        else ->
+                            Timber.d("else action")
                     }
-                    contains("home") -> {
-                        performGlobalAction(GLOBAL_ACTION_BACK)
+                }
+            } else {
+                with(text.toLowerCase()) {
+                    when {
+                        contains("back") -> {
+                            Timber.d("back")
+                            performGlobalAction(GLOBAL_ACTION_BACK)
+                        }
+                        contains("home") -> {
+                            Timber.d("home")
+                            performGlobalAction(GLOBAL_ACTION_HOME)
+                        }
+                        else ->
+                            Timber.d("else action")
                     }
-                    contains("click") -> {
-                        node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    }
-
-                    else ->
-                        Timber.d("else action")
-
                 }
             }
         } else {
@@ -80,17 +93,17 @@ class BaseAccessibilityService : AccessibilityService() {
         }
     }
 
-    fun findViewByText(text: String, clickable: Boolean): AccessibilityNodeInfo? {
-        val accessibilityNodeInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            rootInActiveWindow ?: return null
-        } else  return null
-
-        val nodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByText(text)
-        if (nodeInfoList != null && !nodeInfoList.isEmpty()) {
-            for (nodeInfo in nodeInfoList) {
-                if (nodeInfo != null && nodeInfo.isClickable == clickable) {
-                    return nodeInfo
-                }
+    fun findViewByText(text: String): AccessibilityNodeInfo? {
+        Timber.d("findViewByText")
+        if (rootInActiveWindow == null) {
+            Timber.d("rootInActiveWindow == null")
+            return null
+        }
+        getChildNode(rootInActiveWindow)
+        Timber.d("mNodeList.size: " + mNodeList.size)
+        for (node in mNodeList) {
+            if (text.contains(node.text.toString().toLowerCase())) {
+                return node
             }
         }
         return null

@@ -21,6 +21,7 @@ import java.util.ArrayList
 class FloatView : RecognitionListener {
 
     private fun initFloatingWindow() {
+        mStopRecogRunnable = Runnable { reStartRecognition() }
         mSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(mContext)
         mSpeechRecognizer!!.setRecognitionListener(this)
 
@@ -72,8 +73,40 @@ class FloatView : RecognitionListener {
         }
     }
 
-    private fun stopRecognition() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    fun triggerRecognition() {
+        if (mRecoging) {
+            stopRecognition()
+        } else {
+            mRecoging = true
+            mFloatingTextView!!.setText("Speech...")
+            addFloatingView(mFloatingTextFrameLayout, mFloatingLayoutParams)
+            mSpeechRecognizer!!.startListening(mRecognizerIntent)
+        }
+    }
+
+    fun stopRecognition() {
+        Timber.d("stopRecognition")
+        mRecoging = false
+        mSpeechRecognizer!!.stopListening()
+
+        removeFloatingView(mFloatingTextFrameLayout!!)
+
+        mFloatingTextView!!.setText("shot up")
+        addFloatingView(mFloatingTextFrameLayout, mFloatingLayoutParams)
+
+        Thread.sleep(mDelayMillis)
+        removeFloatingView(mFloatingTextFrameLayout!!)
+    }
+
+    private fun reStartRecognition() {
+        if (!mRecoging) return
+        Timber.d("reStartRecognition")
+
+        removeFloatingView(mFloatingTextFrameLayout!!)
+
+        mFloatingTextView!!.setText("Speech...")
+        addFloatingView(mFloatingTextFrameLayout, mFloatingLayoutParams)
+        mSpeechRecognizer!!.startListening(mRecognizerIntent)
     }
 
     override fun onReadyForSpeech(p0: Bundle?) {
@@ -119,19 +152,21 @@ class FloatView : RecognitionListener {
             else -> message = "Didn't understand, please try again."
         }
         Timber.d("Error: $message")
-//        stopRecognition()
+        mFloatingTextView!!.setText("Error: $message")
+        mHandler!!.postDelayed(mStopRecogRunnable, mDelayMillis)
     }
 
     override fun onResults(p0: Bundle?) {
         var resList: ArrayList<String>?
                 = p0!!.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
         var text: String = ""
-        for (result in resList!!) {
-            text += result + "\n"
-        }
+        text = resList!!.get(0)
+//        for (result in resList!!) {
+//            text += result + "\n"
+//        }
         Timber.d("onResults: " + text)
         mFloatingTextView!!.setText(text)
-//        mHandler!!.postDelayed(mStopRecogRunnable, 3000)
+        mHandler!!.postDelayed(mStopRecogRunnable, mDelayMillis)
     }
 
     companion object {
@@ -140,19 +175,19 @@ class FloatView : RecognitionListener {
         private var mFloatingTextView: TextView ?= null
         private var mFloatingLayoutParams: LayoutParams ?=null
         private var mInstance: FloatView ?= null
-//        private var mHandler: Handler ?= null
-//        private var mStopRecogRunnable: Runnable ?= null
+        private var mHandler: Handler ?= null
+        private var mStopRecogRunnable: Runnable ?= null
         private var mSpeechRecognizer: SpeechRecognizer ?= null
         private var mRecognizerIntent: Intent ?= null
+        private var mDelayMillis: Long = 3000
+        private var mRecoging: Boolean = true
 
         fun init(context: Context) {
             mContext = context
-//            mHandler = Handler()
-//            mStopRecogRunnable = Runnable { stopRecognition() }
+            mHandler = Handler()
 
             mInstance!!.initFloatingWindow()
             mInstance!!.setUpFloatingTextLayoutParams()
-            mInstance!!.addFloatingView(mFloatingTextFrameLayout, mFloatingLayoutParams)
         }
 
         fun getInstance(): FloatView {

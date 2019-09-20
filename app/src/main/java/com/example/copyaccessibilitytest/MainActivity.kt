@@ -2,10 +2,16 @@ package com.example.copyaccessibilitytest
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.PorterDuff
+import android.graphics.drawable.Drawable
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.MotionEvent
+import android.view.View
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
 import timber.log.Timber
 
@@ -28,15 +34,20 @@ class MainActivity : AppCompatActivity() {
 
         voiceTrigger.setOnClickListener{
             Timber.d("voice trigger!")
-            FloatView.getInstance()
-            FloatView.init(this)
+            FloatView.getInstance().triggerRecognition()
         }
 
-        commandTrigger.setOnClickListener{
-            Timber.d("command trigger!")
-            BaseAccessibilityService.getInstance().performAction(
-                BaseAccessibilityService.getInstance().findViewByText("trigger", true)
-                , "click")
-        }
+        commandTrigger.setOnTouchListener(View.OnTouchListener{ view, motionEvent ->
+            when (motionEvent.action){
+                MotionEvent.ACTION_DOWN -> {
+                    Timber.d("command trigger!")
+                    BaseAccessibilityService.getInstance().performAction("home")
+                }
+                MotionEvent.ACTION_UP -> {
+                    //view.performClick()
+                }
+            }
+            return@OnTouchListener true
+        })
     }
 }

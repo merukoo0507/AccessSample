@@ -39,7 +39,9 @@ class MainApplication : Application() {
             if (!isAccessibilitySettingOn("BaseAccessibilityService", this))
                 jump2Setting(this)
 
-            BaseAccessibilityService.init(this)
+//            BaseAccessibilityService.init(this)
+            FloatView.getInstance()
+            FloatView.init(applicationContext)
         }
     }
 
