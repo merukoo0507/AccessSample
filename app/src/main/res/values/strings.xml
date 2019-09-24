@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">AccessSample</string>
     <string name="accessibility_service_label">AccessService</string>
+    <string name="wait_for_speech">Speech...</string>
 </resources>

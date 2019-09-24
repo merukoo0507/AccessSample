@@ -5,35 +5,35 @@ import android.content.Context
 import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import androidx.annotation.RequiresApi
 import timber.log.Timber
 
 class BaseAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         Timber.i("onServiceConnected")
+        mInstance = this
+        FloatView.getInstance(this)
     }
 
     override fun onInterrupt() {
         Timber.i("onInterrupt")
     }
 
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
     override fun onAccessibilityEvent(p0: AccessibilityEvent?) {
         Timber.i("onAccessibilityEvent: " + p0!!.eventType)
 
-        if (p0!!.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+        if (p0!!.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+            || p0!!.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+            || p0!!.eventType == AccessibilityEvent.WINDOWS_CHANGE_ADDED) {
             Timber.d("TYPE_WINDOW_CONTENT_CHANGED")
-            val node: AccessibilityNodeInfo ?= if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                rootInActiveWindow
-            } else {
-                Timber.d("VERSION.SDK_INT < JELLY_BEAN")
-                return
-            }
-
-            if (node == null) {
+            rNode = rootInActiveWindow
+            if (rNode == null) {
                 Timber.d("rootNode == null")
                 return
             }
-            getChildNode(node!!)
+            getChildNode(rNode!!)
         }
 
     }
@@ -55,40 +55,56 @@ class BaseAccessibilityService : AccessibilityService() {
 
     }
 
-    fun performAction(node: AccessibilityNodeInfo?, actionText: String) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            with(actionText.toLowerCase()) {
-                when {
-                    contains("back") -> {
-                        Timber.d("back")
-                        performGlobalAction(GLOBAL_ACTION_BACK)
-                    }
-                    contains("home") -> {
-                        performGlobalAction(GLOBAL_ACTION_BACK)
-                    }
-                    contains("click") -> {
-                        node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    }
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
+    fun performAction(text: String) {
+        Timber.d("pf: " + text)
 
-                    else ->
-                        Timber.d("else action")
-
+        with(text.toLowerCase()) {
+            when {
+                contains("click") -> {
+                    clickAction(text)
+                }
+                contains("back") -> {
+                    Timber.d("pf: back")
+                    performGlobalAction(GLOBAL_ACTION_BACK)
+                }
+                contains("home") -> {
+                    Timber.d("pf: home")
+                    performGlobalAction(GLOBAL_ACTION_HOME)
+                }
+                else -> {
+                    Timber.d("else action")
+                    clickAction(text)
                 }
             }
-        } else {
-            Timber.d("VERSION.SDK_INT < JELLY_BEAN")
         }
     }
 
-    fun findViewByText(text: String, clickable: Boolean): AccessibilityNodeInfo? {
-        val accessibilityNodeInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            rootInActiveWindow ?: return null
-        } else  return null
+    fun clickAction(text: String) {
+        val strs = text.split(",").toTypedArray()
+        if (rNode == null) {
+            Timber.d("(rNode == null")
+            return
+        }
+        for (str in strs) {
+            if (str.toLowerCase().equals("click"))  continue
+            Timber.d("pf: str = " + str)
+            var nodeList = rNode!!.findAccessibilityNodeInfosByText(str)
+            for(node in nodeList) {
+                Timber.d("pf: ACTION_CLICK")
+                node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            }
+        }
+    }
 
-        val nodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByText(text)
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
+    fun findViewByText(text: String): AccessibilityNodeInfo? {
+        val rNode = this.rootInActiveWindow
+
+        val nodeInfoList = rNode.findAccessibilityNodeInfosByText(text)
         if (nodeInfoList != null && !nodeInfoList.isEmpty()) {
             for (nodeInfo in nodeInfoList) {
-                if (nodeInfo != null && nodeInfo.isClickable == clickable) {
+                if (nodeInfo != null) { // && nodeInfo.isClickable == clickable) {
                     return nodeInfo
                 }
             }
@@ -97,17 +113,13 @@ class BaseAccessibilityService : AccessibilityService() {
     }
 
     companion object {
-        private var mContext: Context ?= null
         private var mInstance: BaseAccessibilityService ?= null
-
-
-        fun init(context: Context) {
-            mContext = context
-        }
+        var rNode: AccessibilityNodeInfo ?= null
 
         fun getInstance(): BaseAccessibilityService {
             if (mInstance == null) {
-                mInstance = BaseAccessibilityService()
+                Timber.d("BaseAccessibilityService.getInstance() == null")
+                throw Exception("BaseAccessibilityService.getInstance() == null")
             }
             return  mInstance!!
         }

@@ -5,16 +5,20 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import kotlinx.android.synthetic.main.activity_main.*
 import timber.log.Timber
 
 class MainActivity : AppCompatActivity() {
 
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+//        FloatView.getInstance()
+//        FloatView.init(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ActivityCompat.checkSelfPermission(
@@ -27,16 +31,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         voiceTrigger.setOnClickListener{
-            Timber.d("voice trigger!")
-            FloatView.getInstance()
-            FloatView.init(this)
+            Timber.d("trigger!")
+//            BaseAccessibilityService.getInstance().performAction("click send")
         }
 
         commandTrigger.setOnClickListener{
-            Timber.d("command trigger!")
-            BaseAccessibilityService.getInstance().performAction(
-                BaseAccessibilityService.getInstance().findViewByText("trigger", true)
-                , "click")
+            Timber.d("send!")
+//            BaseAccessibilityService.getInstance().performAction("click TRIGGER")
         }
     }
 }
