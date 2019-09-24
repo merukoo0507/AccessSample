@@ -38,17 +38,18 @@ class BaseAccessibilityService : AccessibilityService() {
 
     }
 
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     fun getChildNode(node: AccessibilityNodeInfo) {
         for (i in 0 until node.childCount ) {
             var childNode = node.getChild(i)
             if (childNode == null)  return
-            if (childNode.text != null) {
+            if (childNode.isClickable) {    //(childNode.text != null) {
                 Timber.d("nodeText: " + childNode.text
-                        + ", pkgName: " + childNode.packageName
-                        + ", isClickable: " + childNode.isCheckable)
+                        + ", isClickable: " + childNode.isClickable
+                        + ", pkgName: " + childNode.packageName)
             }
             if (childNode.childCount != 0) {
-                Timber.d("childCnt: " + childNode.childCount)
+//                Timber.d("childCnt: " + childNode.childCount)
                 getChildNode(childNode)
             }
         }
@@ -64,13 +65,21 @@ class BaseAccessibilityService : AccessibilityService() {
                 contains("click") -> {
                     clickAction(text)
                 }
-                contains("back") -> {
+                contains("back") || contains("返回") -> {
                     Timber.d("pf: back")
                     performGlobalAction(GLOBAL_ACTION_BACK)
                 }
-                contains("home") -> {
+                contains("home") || contains("首頁") -> {
                     Timber.d("pf: home")
                     performGlobalAction(GLOBAL_ACTION_HOME)
+                }
+                contains("backward") || contains("下滑") -> {
+                    Timber.d("pf: backward")
+                    performGlobalAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
+                }
+                contains("forward") || contains("上滑") -> {
+                    Timber.d("pf: forward")
+                    performGlobalAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
                 }
                 else -> {
                     Timber.d("else action")
@@ -92,7 +101,11 @@ class BaseAccessibilityService : AccessibilityService() {
             var nodeList = rNode!!.findAccessibilityNodeInfosByText(str)
             for(node in nodeList) {
                 Timber.d("pf: ACTION_CLICK")
-                node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                if (node.isClickable) {
+                    node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                } else if (node.parent.isClickable) {
+                    node.parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                }
             }
         }
     }

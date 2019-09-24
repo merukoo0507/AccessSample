@@ -29,16 +29,16 @@ class FloatView(context: Context) : RecognitionListener {
         initFloatingWindow()
         setUpFloatingTextLayoutParams()
         setUpButtonLayoutParams()
-        addFloatingView(mFloatingTextFrameLayout, mFloatingLayoutParams)
         addFloatingView(mButtonFrameLayout, mButtonLayoutParams)
     }
 
     private fun initFloatingWindow() {
-        mSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(mContext)
-        mSpeechRecognizer!!.setRecognitionListener(this)
-        mRestartRecogRunnable = Runnable { restartRecogniion() }
+        mStopRecogRunnable = Runnable { stopRecognition() }
         mListenRunnable = Runnable {
             mSpeechRecognizer!!.startListening(mRecognizerIntent) }
+
+        mSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(mContext)
+        mSpeechRecognizer!!.setRecognitionListener(this)
 
         mRecognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
         mRecognizerIntent!!.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "zh-TW")
@@ -49,16 +49,21 @@ class FloatView(context: Context) : RecognitionListener {
         )
 
         mFloatingTextFrameLayout = View.inflate(mContext, R.layout.floating_text, null) as FrameLayout
-        mFloatingTextFrameLayout!!.setOnClickListener({
-            Timber.d("Click mFloatingText.")
-        })
         mFloatingTextView = mFloatingTextFrameLayout!!.findViewById(R.id.floating_text_view)
 
         mButtonFrameLayout = View.inflate(mContext, R.layout.floating_button, null) as FrameLayout
         mButtonView = mButtonFrameLayout!!.findViewById(R.id.button)
         mButtonView!!.setOnClickListener({
+            if (mRecogAlive) {
+                mSpeechRecognizer!!.stopListening()
+                return@setOnClickListener
+            }
             Timber.d("Click mFloatingButton.")
+            mRecogAlive = true
             mSpeechRecognizer!!.startListening(mRecognizerIntent)
+
+            mFloatingTextView!!.setText(R.string.wait_for_speech)
+            addFloatingView(mFloatingTextFrameLayout, mFloatingLayoutParams)
         })
     }
 
@@ -111,12 +116,24 @@ class FloatView(context: Context) : RecognitionListener {
         }
     }
 
+    fun stopRecognition() {
+        Timber.d("stopRecognition")
+        mRecogAlive = false
+        removeFloatingView(mFloatingTextFrameLayout!!)
+    }
+
+    private fun reStartRecognition() {
+        Timber.d("reStartRecognition")
+        mFloatingTextView!!.setText("Speech...")
+        mSpeechRecognizer!!.startListening(mRecognizerIntent)
+    }
+
     override fun onReadyForSpeech(p0: Bundle?) {
         Timber.d("onReadyForSpeech")
     }
 
     override fun onRmsChanged(p0: Float) {
-        Timber.d("onRmsChanged: " + p0)
+//        Timber.d("onRmsChanged: " + p0)
     }
 
     override fun onBufferReceived(p0: ByteArray?) {
@@ -155,7 +172,7 @@ class FloatView(context: Context) : RecognitionListener {
         }
         Timber.d("Error: $p0, $message")
         mFloatingTextView!!.setText(message)
-        mHandler!!.postDelayed(mRestartRecogRunnable, mDelay)
+        mHandler!!.postDelayed(mStopRecogRunnable, mDelay)
     }
 
     @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
@@ -171,24 +188,28 @@ class FloatView(context: Context) : RecognitionListener {
 
         text = resList.get(0)
         mFloatingTextView!!.setText(text)
-        mHandler!!.postDelayed(mRestartRecogRunnable, mDelay)
+        mHandler!!.postDelayed(mStopRecogRunnable, mDelay)
     }
 
     companion object {
         private var mContext: Context ?= null
+        private var mInstance: FloatView ?= null
+        private var mHandler: Handler ?= null
+
+        private var mSpeechRecognizer: SpeechRecognizer ?= null
+        private var mRecognizerIntent: Intent ?= null
+
         private var mFloatingTextFrameLayout: FrameLayout ?= null
         private var mFloatingTextView: TextView ?= null
         private var mButtonFrameLayout: FrameLayout ?= null
         private var mButtonView: Button?= null
         private var mFloatingLayoutParams: LayoutParams ?=null
         private var mButtonLayoutParams: LayoutParams ?=null
-        private var mInstance: FloatView ?= null
-        private var mHandler: Handler ?= null
+
         private var mListenRunnable: Runnable ?= null
-        private var mRestartRecogRunnable: Runnable ?= null
-        private var mSpeechRecognizer: SpeechRecognizer ?= null
-        private var mRecognizerIntent: Intent ?= null
+        private var mStopRecogRunnable: Runnable ?= null
         private var mDelay: Long = 1500
+        private var mRecogAlive: Boolean = false
 
         fun getInstance(context: Context): FloatView {
             if (mInstance == null) {
