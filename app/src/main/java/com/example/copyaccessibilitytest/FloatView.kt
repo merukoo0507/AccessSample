@@ -3,6 +3,7 @@ package com.example.copyaccessibilitytest
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
+import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -14,6 +15,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.view.WindowManager.LayoutParams
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -27,8 +29,7 @@ class FloatView(context: Context) : RecognitionListener {
         mHandler = Handler()
 
         initFloatingWindow()
-        setUpFloatingTextLayoutParams()
-        setUpButtonLayoutParams()
+        setUpFloatingLayoutParams()
         addFloatingView(mButtonFrameLayout, mButtonLayoutParams)
     }
 
@@ -67,7 +68,45 @@ class FloatView(context: Context) : RecognitionListener {
         })
     }
 
-    private fun setUpFloatingTextLayoutParams() {
+    fun addTextView2Ndoe(nodes : MutableList<AccessibilityNodeInfo>) {
+        if (mTagList!!.size > 0) {
+            Timber.d("addTextView2Ndoe -- Last TagList.size" + mTagList!!.size)
+
+            for (mTag in mTagList!!)
+                removeFloatingView(mTag!!)
+        }
+
+        Timber.d("addTextView2Ndoe -- add TagList.size = " + nodes!!.size)
+        for (node in nodes) {
+            var rect = Rect()
+            node.getBoundsInScreen(rect)
+            Timber.d("addTextView2Ndoe -- text: " + node.text)
+            Timber.d("addTextView2Ndoe -- (" + rect.left + "," + rect.top + ")")
+
+            var tv = TextView(mContext)
+            tv.setText("(" + rect.left + "," + rect.top + ")")
+
+
+            var layout = FrameLayout(mContext!!)
+            var lyParams = LayoutParams()
+            lyParams!!.type = LayoutParams.TYPE_APPLICATION_OVERLAY
+            lyParams!!.format = PixelFormat.TRANSLUCENT
+            lyParams!!.flags = (LayoutParams.FLAG_NOT_FOCUSABLE
+                    or LayoutParams.FLAG_NOT_TOUCH_MODAL)
+            lyParams!!.width = LayoutParams.WRAP_CONTENT
+            lyParams!!.height = LayoutParams.WRAP_CONTENT
+            lyParams.x = rect.left
+            lyParams.y = rect.top
+
+            layout.addView(tv)
+
+            mTagList!!.add(layout)
+            addFloatingView(layout, lyParams)
+        }
+    }
+
+    private fun setUpFloatingLayoutParams() {
+        //Speech text
         mFloatingLayoutParams = LayoutParams()
         mFloatingLayoutParams!!.type = LayoutParams.TYPE_APPLICATION_OVERLAY
         mFloatingLayoutParams!!.format = PixelFormat.TRANSLUCENT
@@ -76,8 +115,8 @@ class FloatView(context: Context) : RecognitionListener {
         mFloatingLayoutParams!!.width = LayoutParams.WRAP_CONTENT
         mFloatingLayoutParams!!.height = LayoutParams.WRAP_CONTENT
         mFloatingLayoutParams!!.gravity = Gravity.CENTER_VERTICAL or Gravity.BOTTOM
-    }
-    private fun setUpButtonLayoutParams() {
+
+        //Button
         mButtonLayoutParams = LayoutParams()
         mButtonLayoutParams!!.type = LayoutParams.TYPE_APPLICATION_OVERLAY
         mButtonLayoutParams!!.format = PixelFormat.TRANSLUCENT
@@ -86,6 +125,16 @@ class FloatView(context: Context) : RecognitionListener {
         mButtonLayoutParams!!.width = LayoutParams.WRAP_CONTENT
         mButtonLayoutParams!!.height = LayoutParams.WRAP_CONTENT
         mButtonLayoutParams!!.gravity = Gravity.CENTER_HORIZONTAL or Gravity.RIGHT
+
+        //Tag
+//        mTagLayoutParams = LayoutParams()
+//        mTagLayoutParams!!.type = LayoutParams.TYPE_APPLICATION_OVERLAY
+//        mTagLayoutParams!!.format = PixelFormat.TRANSLUCENT
+//        mTagLayoutParams!!.flags = (LayoutParams.FLAG_NOT_FOCUSABLE
+//                or LayoutParams.FLAG_NOT_TOUCH_MODAL)
+//        mTagLayoutParams!!.width = LayoutParams.WRAP_CONTENT
+//        mTagLayoutParams!!.height = LayoutParams.WRAP_CONTENT
+
     }
 
     private fun addFloatingView(frameLayout: FrameLayout?, flParams: LayoutParams?) {
@@ -98,19 +147,11 @@ class FloatView(context: Context) : RecognitionListener {
         }
     }
 
-    private fun restartRecogniion() {
-        Timber.d("restartRecogniion.")
-        mInstance!!.removeFloatingView(mFloatingTextFrameLayout!!)
-
-        mFloatingTextView!!.setText("Speech...")
-        mInstance!!.addFloatingView(mFloatingTextFrameLayout, mFloatingLayoutParams)
-        mSpeechRecognizer!!.startListening(mRecognizerIntent)
-    }
     private fun removeFloatingView(frameLayout: FrameLayout) {
         Timber.d("removeFloatingView.")
         try {
             var wm: WindowManager = mContext!!.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            wm.removeView(frameLayout)
+            wm.removeViewImmediate(frameLayout)
         } catch (e: Exception) {
             Timber.d("remove window view err: " + e.message)
         }
@@ -199,12 +240,16 @@ class FloatView(context: Context) : RecognitionListener {
         private var mSpeechRecognizer: SpeechRecognizer ?= null
         private var mRecognizerIntent: Intent ?= null
 
+        //Speech text
         private var mFloatingTextFrameLayout: FrameLayout ?= null
         private var mFloatingTextView: TextView ?= null
+        private var mFloatingLayoutParams: LayoutParams ?=null
+        //Button
         private var mButtonFrameLayout: FrameLayout ?= null
         private var mButtonView: Button?= null
-        private var mFloatingLayoutParams: LayoutParams ?=null
         private var mButtonLayoutParams: LayoutParams ?=null
+        //Tag
+        private var mTagList: MutableList<FrameLayout> ?= mutableListOf()
 
         private var mListenRunnable: Runnable ?= null
         private var mStopRecogRunnable: Runnable ?= null

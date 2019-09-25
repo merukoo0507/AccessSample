@@ -29,10 +29,10 @@ class MainActivity : AppCompatActivity() {
 
         voiceTrigger.setOnClickListener{
             Timber.d("trigger!")
-//            BaseAccessibilityService.getInstance().performAction("click send")
+            BaseAccessibilityService.getInstance().performAction("send,test")
         }
 
-        commandTrigger.setOnClickListener{
+        layout.setOnClickListener{
             Timber.d("send!")
 //            BaseAccessibilityService.getInstance().performAction("click TRIGGER")
         }
