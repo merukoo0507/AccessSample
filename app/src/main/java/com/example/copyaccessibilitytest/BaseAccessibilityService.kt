@@ -12,6 +12,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import timber.log.Timber
+import java.lang.Integer.parseInt
 
 class BaseAccessibilityService : AccessibilityService() {
 
@@ -116,6 +117,21 @@ class BaseAccessibilityService : AccessibilityService() {
         for (str in strs) {
             if (str.toLowerCase().equals("click"))  continue
             Timber.d("pf: str = " + str)
+            var numeric = true
+            var num = -1
+            try {
+                num = parseInt(str)
+                Timber.d("pf: num = " + num)
+            } catch (e: NumberFormatException) {
+                Timber.d("pf: numeric = false")
+                numeric = false
+            }
+            if (numeric) {
+                Timber.d("pf: numeric")
+                mNodeList.get(num).performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                return
+            }
+
             var nodeList = rNode!!.findAccessibilityNodeInfosByText(str)
             for(node in nodeList) {
                 Timber.d("pf: ACTION_CLICK")

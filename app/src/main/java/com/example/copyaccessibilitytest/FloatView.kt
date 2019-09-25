@@ -2,6 +2,7 @@ package com.example.copyaccessibilitytest
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.os.Build
@@ -16,6 +17,7 @@ import android.view.View
 import android.view.WindowManager
 import android.view.WindowManager.LayoutParams
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.AbsoluteLayout
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -68,72 +70,71 @@ class FloatView(context: Context) : RecognitionListener {
         })
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun addTextView2Ndoe(nodes : MutableList<AccessibilityNodeInfo>) {
-        if (mTagList!!.size > 0) {
-            Timber.d("addTextView2Ndoe -- Last TagList.size" + mTagList!!.size)
-
-            for (mTag in mTagList!!)
-                removeFloatingView(mTag!!)
+        if (mTagsFrameLayout != null) {
+            removeFloatingView(mTagsFrameLayout!!)
         }
+        mTagsFrameLayout = FrameLayout(mContext!!)
 
-        Timber.d("addTextView2Ndoe -- add TagList.size = " + nodes!!.size)
-        for (node in nodes) {
+        for (i in 0..(nodes.size-1)) {
             var rect = Rect()
-            node.getBoundsInScreen(rect)
-            Timber.d("addTextView2Ndoe -- text: " + node.text)
-            Timber.d("addTextView2Ndoe -- (" + rect.left + "," + rect.top + ")")
+            nodes.get(i).getBoundsInScreen(rect)
+            Timber.d("addTextView2Ndoe -- text:" + nodes.get(i).text + " (" + rect.left + "," + rect.top + ")")
 
             var tv = TextView(mContext)
-            tv.setText("(" + rect.left + "," + rect.top + ")")
+            tv.setText(""+i)
+            var lparams = FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+
+            lparams.leftMargin = rect.left
+            lparams.topMargin = rect.top
+            tv.setLayoutParams(lparams)
+            tv.setBackgroundColor(Color.argb(0.8f, 0.0f, 0.0f, 0.0f))
+            tv.setTextColor(Color.argb(0.8f, 255.0f, 255.0f, 255.0f))
+            tv.setPadding(2, 2, 2, 2)
 
 
-            var layout = FrameLayout(mContext!!)
-            var lyParams = LayoutParams()
-            lyParams!!.type = LayoutParams.TYPE_APPLICATION_OVERLAY
-            lyParams!!.format = PixelFormat.TRANSLUCENT
-            lyParams!!.flags = (LayoutParams.FLAG_NOT_FOCUSABLE
-                    or LayoutParams.FLAG_NOT_TOUCH_MODAL)
-            lyParams!!.width = LayoutParams.WRAP_CONTENT
-            lyParams!!.height = LayoutParams.WRAP_CONTENT
-            lyParams.x = rect.left
-            lyParams.y = rect.top
-
-            layout.addView(tv)
-
-            mTagList!!.add(layout)
-            addFloatingView(layout, lyParams)
+            mTagsFrameLayout!!.addView(tv)
         }
+        addFloatingView(mTagsFrameLayout, mTagLayoutParams)
     }
 
     private fun setUpFloatingLayoutParams() {
         //Speech text
         mFloatingLayoutParams = LayoutParams()
-        mFloatingLayoutParams!!.type = LayoutParams.TYPE_APPLICATION_OVERLAY
+        mFloatingLayoutParams!!.type = LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
         mFloatingLayoutParams!!.format = PixelFormat.TRANSLUCENT
         mFloatingLayoutParams!!.flags = (LayoutParams.FLAG_NOT_FOCUSABLE
-                or LayoutParams.FLAG_NOT_TOUCH_MODAL)
+                or LayoutParams.FLAG_NOT_TOUCH_MODAL
+                or LayoutParams.FLAG_KEEP_SCREEN_ON
+                or LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
         mFloatingLayoutParams!!.width = LayoutParams.WRAP_CONTENT
         mFloatingLayoutParams!!.height = LayoutParams.WRAP_CONTENT
         mFloatingLayoutParams!!.gravity = Gravity.CENTER_VERTICAL or Gravity.BOTTOM
 
         //Button
         mButtonLayoutParams = LayoutParams()
-        mButtonLayoutParams!!.type = LayoutParams.TYPE_APPLICATION_OVERLAY
+        mButtonLayoutParams!!.type = LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
         mButtonLayoutParams!!.format = PixelFormat.TRANSLUCENT
         mButtonLayoutParams!!.flags = (LayoutParams.FLAG_NOT_FOCUSABLE
-                or LayoutParams.FLAG_NOT_TOUCH_MODAL)
+                or LayoutParams.FLAG_NOT_TOUCH_MODAL
+                or LayoutParams.FLAG_KEEP_SCREEN_ON
+                or LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
         mButtonLayoutParams!!.width = LayoutParams.WRAP_CONTENT
         mButtonLayoutParams!!.height = LayoutParams.WRAP_CONTENT
         mButtonLayoutParams!!.gravity = Gravity.CENTER_HORIZONTAL or Gravity.RIGHT
 
         //Tag
-//        mTagLayoutParams = LayoutParams()
-//        mTagLayoutParams!!.type = LayoutParams.TYPE_APPLICATION_OVERLAY
-//        mTagLayoutParams!!.format = PixelFormat.TRANSLUCENT
-//        mTagLayoutParams!!.flags = (LayoutParams.FLAG_NOT_FOCUSABLE
-//                or LayoutParams.FLAG_NOT_TOUCH_MODAL)
-//        mTagLayoutParams!!.width = LayoutParams.WRAP_CONTENT
-//        mTagLayoutParams!!.height = LayoutParams.WRAP_CONTENT
+        mTagLayoutParams = LayoutParams()
+        mTagLayoutParams!!.type = LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+        mTagLayoutParams!!.format = PixelFormat.TRANSLUCENT
+        mTagLayoutParams!!.flags = (LayoutParams.FLAG_NOT_FOCUSABLE
+                or LayoutParams.FLAG_NOT_TOUCH_MODAL
+                or LayoutParams.FLAG_NOT_TOUCHABLE
+                or LayoutParams.FLAG_KEEP_SCREEN_ON
+                or LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
+        mTagLayoutParams!!.width = LayoutParams.MATCH_PARENT
+        mTagLayoutParams!!.height = LayoutParams.MATCH_PARENT
 
     }
 
@@ -249,7 +250,8 @@ class FloatView(context: Context) : RecognitionListener {
         private var mButtonView: Button?= null
         private var mButtonLayoutParams: LayoutParams ?=null
         //Tag
-        private var mTagList: MutableList<FrameLayout> ?= mutableListOf()
+        private var mTagsFrameLayout: FrameLayout ?= null
+        private var mTagLayoutParams: LayoutParams ?=null
 
         private var mListenRunnable: Runnable ?= null
         private var mStopRecogRunnable: Runnable ?= null
