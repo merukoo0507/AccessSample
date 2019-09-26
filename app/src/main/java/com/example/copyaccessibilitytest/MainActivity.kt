@@ -28,13 +28,33 @@ class MainActivity : AppCompatActivity() {
         }
 
         voiceTrigger.setOnClickListener{
-            Timber.d("trigger!")
-            BaseAccessibilityService.getInstance().performAction("send,test")
+            Timber.d("pf: trigger!")
+            BaseAccessibilityService.getInstance().matchActionString("send,test")
         }
 
         layout.setOnClickListener{
-            Timber.d("send!")
+            Timber.d("pf: send!")
 //            BaseAccessibilityService.getInstance().performAction("click TRIGGER")
+        }
+
+        back.setOnClickListener{
+            Timber.d("pf: back!")
+            BaseAccessibilityService.getInstance().matchActionString("back")
+        }
+
+        home.setOnClickListener{
+            Timber.d("pf: 首頁!")
+            BaseAccessibilityService.getInstance().matchActionString("首頁")
+        }
+
+        scrollUp.setOnClickListener{
+            Timber.d("pf: scrollUp!")
+            BaseAccessibilityService.getInstance().matchActionString("scroll up")
+        }
+
+        scrollDown.setOnClickListener{
+            Timber.d("pf: scrollDown!")
+            BaseAccessibilityService.getInstance().matchActionString("scroll down")
         }
     }
 }

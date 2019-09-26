@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="voiceArray">
+        <item>back,返回,上一頁</item>
+        <item>home,首頁,主畫面</item>
+        <item>backward,下滑,往下滑,scrolldown,scroll down</item>
+        <item>forward,上滑,往上滑,scrollup,scroll up</item>
+    </string-array>
+</resources>

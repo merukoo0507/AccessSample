@@ -11,13 +11,11 @@ import android.os.Handler
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
-import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.view.WindowManager.LayoutParams
 import android.view.accessibility.AccessibilityNodeInfo
-import android.widget.AbsoluteLayout
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -68,19 +66,23 @@ class FloatView(context: Context) : RecognitionListener {
             mFloatingTextView!!.setText(R.string.wait_for_speech)
             addFloatingView(mFloatingTextFrameLayout, mFloatingLayoutParams)
         })
+        mTagsFrameLayout = FrameLayout(mContext!!)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun addTextView2Ndoe(nodes : MutableList<AccessibilityNodeInfo>) {
-        if (mTagsFrameLayout != null) {
-            removeFloatingView(mTagsFrameLayout!!)
-        }
+        removeFloatingView(mTagsFrameLayout)
         mTagsFrameLayout = FrameLayout(mContext!!)
 
         for (i in 0..(nodes.size-1)) {
             var rect = Rect()
             nodes.get(i).getBoundsInScreen(rect)
-            Timber.d("addTextView2Ndoe -- text:" + nodes.get(i).text + " (" + rect.left + "," + rect.top + ")")
+            Timber.d("addTextView2Ndoe " + i
+                    + "--id:" + nodes.get(i).viewIdResourceName
+                    + ", text:" + nodes.get(i).text
+                    + ", drawingOrder: " + nodes.get(i).drawingOrder
+                    + ", viewIdResourceName: " + nodes.get(i).viewIdResourceName
+                    + ", actionList: " + nodes.get(i).actionList
+                    + ", (" + rect.left + "," + rect.top + ")")
 
             var tv = TextView(mContext)
             tv.setText(""+i)
@@ -90,7 +92,7 @@ class FloatView(context: Context) : RecognitionListener {
             lparams.topMargin = rect.top
             tv.setLayoutParams(lparams)
             tv.setBackgroundColor(Color.argb(0.8f, 0.0f, 0.0f, 0.0f))
-            tv.setTextColor(Color.argb(0.8f, 255.0f, 255.0f, 255.0f))
+            tv.setTextColor(Color.WHITE)
             tv.setPadding(2, 2, 2, 2)
 
 
@@ -148,7 +150,7 @@ class FloatView(context: Context) : RecognitionListener {
         }
     }
 
-    private fun removeFloatingView(frameLayout: FrameLayout) {
+    private fun removeFloatingView(frameLayout: FrameLayout?) {
         Timber.d("removeFloatingView.")
         try {
             var wm: WindowManager = mContext!!.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -164,10 +166,15 @@ class FloatView(context: Context) : RecognitionListener {
         removeFloatingView(mFloatingTextFrameLayout!!)
     }
 
-    private fun reStartRecognition() {
+    fun reStartRecognition() {
         Timber.d("reStartRecognition")
         mFloatingTextView!!.setText("Speech...")
         mSpeechRecognizer!!.startListening(mRecognizerIntent)
+    }
+
+    fun setSpeechText(text: String) {
+        mFloatingTextView!!.setText(text)
+        mHandler!!.postDelayed(FloatView.mStopRecogRunnable, FloatView.mDelay)
     }
 
     override fun onReadyForSpeech(p0: Bundle?) {
@@ -226,17 +233,16 @@ class FloatView(context: Context) : RecognitionListener {
             text += result + ","
         }
         Timber.d("onResults: " + text)
-        BaseAccessibilityService.getInstance().performAction(text)
+        BaseAccessibilityService.getInstance().matchActionString(text)
 
         text = resList.get(0)
         mFloatingTextView!!.setText(text)
-        mHandler!!.postDelayed(mStopRecogRunnable, mDelay)
     }
 
     companion object {
         private var mContext: Context ?= null
         private var mInstance: FloatView ?= null
-        private var mHandler: Handler ?= null
+        var mHandler: Handler ?= null
 
         private var mSpeechRecognizer: SpeechRecognizer ?= null
         private var mRecognizerIntent: Intent ?= null
@@ -254,8 +260,8 @@ class FloatView(context: Context) : RecognitionListener {
         private var mTagLayoutParams: LayoutParams ?=null
 
         private var mListenRunnable: Runnable ?= null
-        private var mStopRecogRunnable: Runnable ?= null
-        private var mDelay: Long = 1500
+        var mStopRecogRunnable: Runnable ?= null
+        var mDelay: Long = 1500
         private var mRecogAlive: Boolean = false
 
         fun getInstance(context: Context): FloatView {
